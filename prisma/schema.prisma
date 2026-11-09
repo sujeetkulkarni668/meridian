@@ -1,0 +1,262 @@
+// Prisma schema for MERIDIAN - The Autonomous Agent Economy
+// Supports both PostgreSQL (production indexer) and SQLite (local development/sandboxing)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Users & Accounts
+model User {
+  id           String        @id @default(uuid())
+  nearAccountId String       @unique
+  role         String        @default("USER") // USER, BUYER, ADMIN
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  agents       AgentProfile[]
+  tasksCreated Task[]        @relation("BuyerTasks")
+  escrowRecords EscrowRecord[]
+  auditEvents  AuditEvent[]
+}
+
+// 2. Agent Profiles
+model AgentProfile {
+  id             String            @id @default(uuid())
+  name           String
+  slug           String            @unique
+  tagline        String
+  description    String
+  ownerId        String
+  owner          User              @relation(fields: [ownerId], references: [id])
+  nearAccountId  String            // Agent's dedicated NEAR account or sub-account
+  role           String            // BUYER, PROVIDER, NEGOTIATOR, VERIFIER, SPECIALIST
+  category       String            // CODE_AUDIT, ORACLE, DATA_ANALYSIS, SECURITY_REVIEW, RESEARCH, SYNTHESIS
+  pricingModel   String            // FIXED, HOURLY, PER_COMPUTE_UNIT
+  basePriceNear  String            // Store as decimal/yocto string to avoid floating point
+  availability   String            @default("AVAILABLE") // AVAILABLE, BUSY, OFFLINE, PAUSED
+  isDemo         Boolean           @default(false)
+  reputationScore Float            @default(50.0) // 0 - 100
+  totalJobsCompleted Int           @default(0)
+  totalEarnedNear    String        @default("0")
+  metadataJson   String?           // Extended agent parameters & system prompt metadata
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  capabilities   AgentCapability[]
+  bidsSubmitted  Bid[]             @relation("ProviderBids")
+  tasksAssigned  Task[]            @relation("AssignedProvider")
+  verifications  VerificationResult[] @relation("VerifierAgent")
+  reputationLogs ReputationRecord[]
+  executionLogs  AgentExecutionLog[]
+  securityPolicy SecurityPolicy?
+}
+
+// 3. Agent Capabilities
+model AgentCapability {
+  id          String       @id @default(uuid())
+  agentId     String
+  agent       AgentProfile @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name        String
+  description String
+  skillTag    String       // e.g. "rust_audit", "near_intents", "python_data"
+  verified    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+}
+
+// 4. Tasks
+model Task {
+  id               String            @id @default(uuid())
+  taskNumber       Int               @default(1)
+  title            String
+  description      String
+  requirementsJson String            // JSON array of structured acceptance criteria
+  category         String
+  budgetNear       String            // Stored as decimal string (e.g. "5.0")
+  budgetYocto      String            // Accurate integer yoctoNEAR
+  deadlineEpochMs  BigInt
+  buyerId          String
+  buyer            User              @relation("BuyerTasks", fields: [buyerId], references: [id])
+  buyerAccountId   String            // NEAR account of buyer
+  providerId       String?
+  provider         AgentProfile?     @relation("AssignedProvider", fields: [providerId], references: [id])
+  status           String            @default("OPEN") 
+  // Lifecycle: OPEN -> BIDDING -> AWARDED -> FUNDED -> IN_PROGRESS -> DELIVERED -> VERIFIED -> COMPLETED (or DISPUTED, REFUNDED)
+  selectedBidId    String?
+  onChainTaskId    String?           // Matching smart contract task_id
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  bids             Bid[]
+  contract         ContractAgreement?
+  deliverable      Deliverable?
+  verification     VerificationResult?
+  escrow           EscrowRecord?
+  blockchainTxs    BlockchainTransaction[]
+  executionLogs    AgentExecutionLog[]
+  auditEvents      AuditEvent[]
+}
+
+// 5. Bids
+model Bid {
+  id              String       @id @default(uuid())
+  taskId          String
+  task            Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  providerId      String
+  provider        AgentProfile @relation("ProviderBids", fields: [providerId], references: [id])
+  proposedPriceNear String
+  proposedPriceYocto String
+  deliveryTimeHours Int
+  proposalPitch   String
+  status          String       @default("SUBMITTED") // SUBMITTED, SHORTLISTED, REJECTED, ACCEPTED
+  
+  // Deterministic Negotiation Scores (0 - 100)
+  priceScore      Float        @default(0.0) // 35% weight
+  reputationScore Float        @default(0.0) // 30% weight
+  capabilityScore Float        @default(0.0) // 20% weight
+  speedScore      Float        @default(0.0) // 15% weight
+  compositeScore  Float        @default(0.0) // Weighted total
+  scoreRationale  String?      // Verifiable explanation of score
+  createdAt       DateTime     @default(now())
+}
+
+// 6. Contracts (Agreement binding Buyer & Provider)
+model ContractAgreement {
+  id              String   @id @default(uuid())
+  taskId          String   @unique
+  task            Task     @relation(fields: [taskId], references: [id])
+  agreedPriceNear String
+  agreedPriceYocto String
+  escrowAddress   String   // NEAR Contract ID holding the funds
+  escrowFunded    Boolean  @default(false)
+  fundedTxHash    String?
+  settledTxHash   String?
+  status          String   @default("AWAITING_FUNDS") // AWAITING_FUNDS, LOCKED, RELEASED, REFUNDED, DISPUTED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// 7. Deliverables
+model Deliverable {
+  id               String   @id @default(uuid())
+  taskId           String   @unique
+  task             Task     @relation(fields: [taskId], references: [id])
+  content          String   // Output payload (code, report, analysis, data)
+  deliverableHash  String   // SHA-256 integrity hash of deliverable
+  metadataJson     String?  // Additional structured artifacts
+  submittedAt      DateTime @default(now())
+}
+
+// 8. Verification Results (Independent Verifier)
+model VerificationResult {
+  id               String       @id @default(uuid())
+  taskId           String       @unique
+  task             Task         @relation(fields: [taskId], references: [id])
+  verifierAgentId  String
+  verifier         AgentProfile @relation("VerifierAgent", fields: [verifierAgentId], references: [id])
+  verdict          String       // APPROVED, REJECTED, CHANGES_REQUESTED
+  qualityScore     Float        // 0 - 100
+  criteriaMetJson  String       // JSON map of individual criteria passed/failed
+  verdictRationale String       // Clear objective reasoning
+  verifiedAt       DateTime     @default(now())
+}
+
+// 9. Escrow Records
+model EscrowRecord {
+  id               String   @id @default(uuid())
+  taskId           String   @unique
+  task             Task     @relation(fields: [taskId], references: [id])
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  amountNear       String
+  amountYocto      String
+  lockedAt         DateTime?
+  releasedAt       DateTime?
+  refundedAt       DateTime?
+  state            String   @default("INITIAL") // INITIAL, HELD, PAID_OUT, REFUNDED
+  smartContractId  String
+  lockTxHash       String?
+  payoutTxHash     String?
+}
+
+// 10. Blockchain Transactions
+model BlockchainTransaction {
+  id             String   @id @default(uuid())
+  taskId         String?
+  task           Task?    @relation(fields: [taskId], references: [id])
+  txHash         String   @unique
+  signerId       String
+  receiverId     String
+  methodName     String
+  depositYocto   String   @default("0")
+  status         String   // SUCCESS, FAILURE, PENDING, CONFIRMED
+  blockHeight    BigInt?
+  network        String   @default("testnet")
+  explorerUrl    String
+  errorMessage   String?
+  timestamp      DateTime @default(now())
+}
+
+// 11. Reputation Records
+model ReputationRecord {
+  id              String       @id @default(uuid())
+  agentId         String
+  agent           AgentProfile @relation(fields: [agentId], references: [id])
+  taskId          String
+  previousScore   Float
+  newScore        Float
+  scoreDelta      Float
+  reason          String       // TASK_SUCCESS, TASK_FAILURE, VERIFIER_PENALTY, PEER_BONUS
+  proofHash       String?      // Verifiable cryptographic receipt
+  createdAt       DateTime     @default(now())
+}
+
+// 12. Agent Execution Logs
+model AgentExecutionLog {
+  id              String       @id @default(uuid())
+  agentId         String
+  agent           AgentProfile @relation(fields: [agentId], references: [id])
+  taskId          String?
+  task            Task?        @relation(fields: [taskId], references: [id])
+  step            String       // BIDDING, EXECUTION, NEGOTIATION, VERIFICATION, AUDIT
+  llmProvider     String       // GEMINI, GROK, DEMO_SIMULATOR
+  promptTokens    Int          @default(0)
+  completionTokens Int         @default(0)
+  rawInputJson    String?
+  rawOutputJson   String?
+  executionTimeMs Int          @default(0)
+  success         Boolean      @default(true)
+  errorMessage    String?
+  createdAt       DateTime     @default(now())
+}
+
+// 13. Security Policies (Meridian Guard)
+model SecurityPolicy {
+  id                   String       @id @default(uuid())
+  agentId              String       @unique
+  agent                AgentProfile @relation(fields: [agentId], references: [id])
+  maxTaskBudgetNear    Float        @default(50.0)
+  dailySpendLimitNear  Float        @default(150.0)
+  currentDaySpentNear  Float        @default(0.0)
+  allowedMethodsJson   String       @default("[\"register_agent\",\"submit_bid\",\"submit_deliverable\"]")
+  requiresHumanConfirm Boolean      @default(true)
+  isPaused             Boolean      @default(false)
+  updatedAt            DateTime     @updatedAt
+}
+
+// 14. Audit Events
+model AuditEvent {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  taskId       String?
+  task         Task?    @relation(fields: [taskId], references: [id])
+  actionType   String   // AGENT_REGISTER, ESCROW_LOCKED, PAYOUT_RELEASED, EMERGENCY_STOP, INJECTION_DETECTED
+  severity     String   // INFO, WARNING, CRITICAL
+  detailsJson  String
+  ipAddress    String?
+  timestamp    DateTime @default(now())
+}

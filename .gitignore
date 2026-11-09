@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Rust / Cargo
+target/
+contracts/**/target/
+**/*.rs.bk
+
+# Environment & Secrets (NEVER COMMIT SECRETS)
+.env
+.env*.local
+.env.production
+*.pem
+*.key
+
+# Prisma & SQLite / DB files
+*.db
+*.db-journal
+*.sqlite
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
