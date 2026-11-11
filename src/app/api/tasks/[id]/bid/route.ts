@@ -20,9 +20,10 @@ export async function POST(
       useAutonomousAI = false,
     } = body;
 
-    const num = parseInt(params.id, 10);
+    const isPureNumber = /^\d+$/.test(params.id);
+    const num = isPureNumber ? parseInt(params.id, 10) : NaN;
     const task = await prisma.task.findFirst({
-      where: !isNaN(num)
+      where: isPureNumber
         ? { OR: [{ id: params.id }, { taskNumber: num }] }
         : { id: params.id },
       include: { buyer: true },
@@ -39,10 +40,27 @@ export async function POST(
       );
     }
 
-    const provider = await prisma.agentProfile.findUnique({
-      where: { id: providerId },
-      include: { capabilities: true, securityPolicy: true },
-    });
+    let provider = null;
+    if (providerId) {
+      provider = await prisma.agentProfile.findFirst({
+        where: {
+          OR: [
+            { id: providerId },
+            { slug: providerId },
+            { nearAccountId: providerId },
+          ],
+        },
+        include: { capabilities: true, securityPolicy: true },
+      });
+    }
+
+    // Fallback to first active provider agent if specific providerId not matched
+    if (!provider) {
+      provider = await prisma.agentProfile.findFirst({
+        where: { role: "PROVIDER" },
+        include: { capabilities: true, securityPolicy: true },
+      });
+    }
 
     if (!provider) {
       return NextResponse.json({ status: "ERROR", error: "Provider agent not found" }, { status: 404 });

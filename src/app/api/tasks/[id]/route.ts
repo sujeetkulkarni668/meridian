@@ -6,9 +6,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const num = parseInt(params.id, 10);
+    const isPureNumber = /^\d+$/.test(params.id);
+    const num = isPureNumber ? parseInt(params.id, 10) : NaN;
     const task = await prisma.task.findFirst({
-      where: !isNaN(num)
+      where: isPureNumber
         ? { OR: [{ id: params.id }, { taskNumber: num }] }
         : { id: params.id },
       include: {

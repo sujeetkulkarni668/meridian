@@ -25,7 +25,10 @@ try {
   }
 } catch (e) {}
 
-const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
+const SUPABASE_DEFAULT_URL = "postgresql://postgres.duoczpobjcikbzrwcozh:Meridian%401234%40m@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres";
+const dbUrl = process.env.DATABASE_URL || SUPABASE_DEFAULT_URL;
+process.env.DATABASE_URL = dbUrl;
+process.env.DIRECT_URL = process.env.DIRECT_URL || SUPABASE_DEFAULT_URL;
 const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
 
 const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');

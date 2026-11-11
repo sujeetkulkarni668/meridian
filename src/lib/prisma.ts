@@ -3,8 +3,12 @@ import path from "path";
 import fs from "fs";
 import { SEED_DB_BASE64 } from "./db-seed";
 
+const SUPABASE_FALLBACK_URL = "postgresql://postgres.duoczpobjcikbzrwcozh:Meridian%401234%40m@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres";
+
 function getPrismaClient(): PrismaClient {
-  let dbUrl = process.env.DATABASE_URL;
+  let dbUrl = process.env.DATABASE_URL || SUPABASE_FALLBACK_URL;
+  process.env.DATABASE_URL = dbUrl;
+  process.env.DIRECT_URL = process.env.DIRECT_URL || SUPABASE_FALLBACK_URL;
   const isPostgres = dbUrl && (dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://"));
   const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
