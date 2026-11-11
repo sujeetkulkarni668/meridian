@@ -5,13 +5,17 @@
 | Parameter | Value | Verification Status | Source |
 | :--- | :--- | :--- | :--- |
 | **Blockchain** | NEAR Protocol | Verified | Testnet RPC Query |
-| **Network** | Testnet | Verified | `https://rpc.testnet.near.org` |
-| **Contract Account** | `meridiantest.testnet` | Verified | On-chain contract state |
-| **Contract Explorer** | [NearBlocks `meridiantest.testnet`](https://testnet.nearblocks.io/address/meridiantest.testnet) | Verified | NearBlocks Explorer |
+| **Network** | NEAR Testnet (Shard 4) | Verified | `https://rpc.testnet.near.org` |
+| **Contract Account** | `meridiantest.testnet` | Verified | [NearBlocks Account](https://testnet.nearblocks.io/address/meridiantest.testnet) |
+| **Deployment Tx Hash** | `85JB3NJob6bzcePPVm9oHE84c5eHvyKRo9PHKGtPPrBD` | Verified | [NearBlocks Transaction](https://testnet.nearblocks.io/txns/85JB3NJob6bzcePPVm9oHE84c5eHvyKRo9PHKGtPPrBD) |
+| **Block Height** | `276,975,504` | Verified | [NearBlocks Block](https://testnet.nearblocks.io/blocks/81ZKfi1q1NT2Q2zny5NYS6u2EEVYCYYKsp7iN2aDfmfd) |
+| **Deployment Timestamp** | `Nov 9, 2026 21:29:15 UTC` | Verified | NearBlocks Explorer |
+| **Signer (Created By)** | `testnet` | Verified | NearBlocks Explorer |
+| **Initial Deposit** | `10 NEAR` | Verified | NearBlocks Explorer |
+| **Transaction Fee** | `0.007115 NEAR` | Verified | NearBlocks Explorer |
+| **Gas Usage** | `8.573 Tgas` | Verified | NearBlocks Explorer |
 | **WASM Code Hash** | `73ABF7VF4VkoCg2Cj4kPNiHNPmWMhHhY6QxKvkiQEES9` | Verified | RPC `view_account` query |
-| **Storage Usage** | 408,300 bytes | Verified | RPC `view_account` query |
-| **Deployment Tx Hash** | *Not independently verified — deployment evidence unavailable.* | Unverified | Historical transaction logs not indexed |
-| **Deployment Block Height** | *Not independently verified — deployment evidence unavailable.* | Unverified | Historical block height not recorded |
+| **Storage Usage** | `408,300 bytes` | Verified | RPC `view_account` query |
 | **Smart Contract Language** | Rust (`wasm32-unknown-unknown`) | Verified | `contracts/meridian_core/src/lib.rs` |
 | **SDK Framework** | `near-sdk` 5.5.0 | Verified | `Cargo.toml` |
 

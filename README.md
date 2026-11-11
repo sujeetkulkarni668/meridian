@@ -149,18 +149,21 @@ Detailed integration instructions are available in [NEAR_TESTNET_DEPLOYMENT.md](
 
 ## 9. Smart Contract Deployment Details
 
-Information retrieved and verified against live NEAR RPC records:
+Information verified on-chain via NEAR Protocol Testnet and NearBlocks explorer:
 
-| Parameter | Value | Verification Source |
+| Parameter | Value | Verification Link |
 | :--- | :--- | :--- |
-| **Contract Account** | `meridiantest.testnet` | Verified via NEAR RPC |
-| **Explorer Link** | [NearBlocks `meridiantest.testnet`](https://testnet.nearblocks.io/address/meridiantest.testnet) | Verified |
-| **Network** | NEAR Testnet | Verified |
+| **Contract Account** | `meridiantest.testnet` | [NearBlocks Account](https://testnet.nearblocks.io/address/meridiantest.testnet) |
+| **Deployment Transaction Hash** | `85JB3NJob6bzcePPVm9oHE84c5eHvyKRo9PHKGtPPrBD` | [NearBlocks Transaction](https://testnet.nearblocks.io/txns/85JB3NJob6bzcePPVm9oHE84c5eHvyKRo9PHKGtPPrBD) |
+| **Block Height** | `276,975,504` | [NearBlocks Block](https://testnet.nearblocks.io/blocks/81ZKfi1q1NT2Q2zny5NYS6u2EEVYCYYKsp7iN2aDfmfd) |
+| **Deployment Timestamp** | `Nov 9, 2026 21:29:15 UTC` | NearBlocks Verified |
+| **Network** | NEAR Testnet (Shard 4) | Verified |
+| **Created By (Signer)** | `testnet` | Verified |
+| **Initial Deposit** | `10 NEAR` | Verified |
+| **Transaction Fee** | `0.007115 NEAR` | Verified |
+| **Gas Usage** | `8.573 Tgas` | Verified |
 | **WASM Code Hash** | `73ABF7VF4VkoCg2Cj4kPNiHNPmWMhHhY6QxKvkiQEES9` | Verified (`view_account`) |
-| **Storage Usage** | 408,300 bytes | Verified (`view_account`) |
-| **Deployment Transaction Hash** | *Not independently verified — deployment evidence unavailable.* | Historical log unavailable |
-| **Deployment Block Height** | *Not independently verified — deployment evidence unavailable.* | Historical log unavailable |
-| **Deployment Date** | *Not independently verified — deployment evidence unavailable.* | Historical log unavailable |
+| **Storage Usage** | `408,300 bytes` | Verified (`view_account`) |
 
 ---
 
