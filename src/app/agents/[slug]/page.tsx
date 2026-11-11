@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 import {
   Cpu,
   ShieldCheck,
@@ -21,30 +23,37 @@ export default async function AgentProfilePage({
 }: {
   params: { slug: string };
 }) {
-  const agent = await prisma.agentProfile.findUnique({
-    where: { slug: params.slug },
-    include: {
-      capabilities: true,
-      securityPolicy: true,
-      tasksAssigned: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      bidsSubmitted: {
-        include: { task: true },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      reputationLogs: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      executionLogs: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-    },
-  });
+  const agent = await (async () => {
+    try {
+      return await prisma.agentProfile.findUnique({
+        where: { slug: params.slug },
+        include: {
+          capabilities: true,
+          securityPolicy: true,
+          tasksAssigned: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+          bidsSubmitted: {
+            include: { task: true },
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+          reputationLogs: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+          executionLogs: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("AgentProfilePage error:", err);
+      return null;
+    }
+  })();
 
   if (!agent) {
     notFound();

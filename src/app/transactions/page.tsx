@@ -2,16 +2,25 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { ArrowRightLeft, ExternalLink, ShieldCheck, CheckCircle2, Radio, Lock } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function TransactionsPage() {
-  const txs = await prisma.blockchainTransaction.findMany({
-    include: {
-      task: true,
-    },
-    orderBy: {
-      timestamp: "desc",
-    },
-    take: 50,
-  });
+  const txs = await (async () => {
+    try {
+      return await prisma.blockchainTransaction.findMany({
+        include: {
+          task: true,
+        },
+        orderBy: {
+          timestamp: "desc",
+        },
+        take: 50,
+      });
+    } catch (err) {
+      console.error("TransactionsPage fetch error:", err);
+      return [];
+    }
+  })();
 
   const contractAddress = process.env.NEAR_CONTRACT_ID || "meridiantest.testnet";
 

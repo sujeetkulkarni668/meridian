@@ -2,20 +2,29 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Coins, Lock, CheckCircle, AlertTriangle, ArrowUpRight, ExternalLink, ShieldCheck } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function TreasuryPage() {
-  const contracts = await prisma.contractAgreement.findMany({
-    include: {
-      task: {
+  const contracts = await (async () => {
+    try {
+      return await prisma.contractAgreement.findMany({
         include: {
-          buyer: true,
-          provider: true,
+          task: {
+            include: {
+              buyer: true,
+              provider: true,
+            },
+          },
         },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    } catch (err) {
+      console.error("TreasuryPage fetch error:", err);
+      return [];
+    }
+  })();
 
   const lockedNear = contracts
     .filter((c) => c.status === "LOCKED")

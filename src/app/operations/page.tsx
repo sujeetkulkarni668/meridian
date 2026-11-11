@@ -1,17 +1,26 @@
 import prisma from "@/lib/prisma";
 import { Radio, Cpu, Activity, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function OperationsPage() {
-  const logs = await prisma.agentExecutionLog.findMany({
-    include: {
-      agent: true,
-      task: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 50,
-  });
+  const logs = await (async () => {
+    try {
+      return await prisma.agentExecutionLog.findMany({
+        include: {
+          agent: true,
+          task: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 50,
+      });
+    } catch (err) {
+      console.error("OperationsPage fetch error:", err);
+      return [];
+    }
+  })();
 
   return (
     <div className="space-y-8">
