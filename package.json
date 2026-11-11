@@ -14,7 +14,8 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "node prisma/seed.js",
     "contract:build": "powershell -File ./contracts/build.ps1",
-    "contract:test": "powershell -File ./contracts/test.ps1"
+    "contract:test": "powershell -File ./contracts/test.ps1",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
