@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@near-wallet-selector/modal-ui/styles.css";
 import { Navigation } from "@/components/Navigation";
+import { WalletModal } from "@/components/WalletModal";
 import { NearWalletProvider } from "@/lib/near/wallet-context";
 
 export const metadata: Metadata = {
@@ -19,6 +21,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased flex flex-col">
         <NearWalletProvider>
           <Navigation />
+          <WalletModal />
           <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {children}
           </main>

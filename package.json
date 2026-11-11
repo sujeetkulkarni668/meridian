@@ -20,8 +20,11 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@near-wallet-selector/core": "^8.9.15",
+    "@near-wallet-selector/here-wallet": "^8.9.15",
+    "@near-wallet-selector/meteor-wallet": "^8.9.15",
     "@near-wallet-selector/modal-ui": "^8.9.15",
     "@near-wallet-selector/my-near-wallet": "^8.9.15",
+    "@near-wallet-selector/sender": "^8.9.15",
     "@prisma/client": "^5.22.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
