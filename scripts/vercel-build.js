@@ -1,4 +1,6 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev.db';
 
@@ -13,6 +15,17 @@ try {
   execSync('node prisma/seed.js', { stdio: 'inherit', env: process.env });
 } catch (e) {
   console.warn('[Vercel Build] Seeding warning:', e.message);
+}
+
+// Ensure database file is mirrored to both root and prisma/ directory
+try {
+  if (fs.existsSync('./dev.db') && !fs.existsSync('./prisma/dev.db')) {
+    fs.copyFileSync('./dev.db', './prisma/dev.db');
+  } else if (fs.existsSync('./prisma/dev.db') && !fs.existsSync('./dev.db')) {
+    fs.copyFileSync('./prisma/dev.db', './dev.db');
+  }
+} catch (e) {
+  console.warn('[Vercel Build] DB sync warning:', e.message);
 }
 
 console.log('[Vercel Build] 4. Running Next.js production build...');
