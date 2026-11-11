@@ -24,6 +24,16 @@ try {
   } else if (fs.existsSync('./prisma/dev.db') && !fs.existsSync('./dev.db')) {
     fs.copyFileSync('./prisma/dev.db', './dev.db');
   }
+
+  // Generate embedded base64 database snapshot for serverless fallback
+  const dbPath = fs.existsSync('./prisma/dev.db') ? './prisma/dev.db' : './dev.db';
+  if (fs.existsSync(dbPath)) {
+    const dbBuffer = fs.readFileSync(dbPath);
+    const b64 = dbBuffer.toString('base64');
+    const seedContent = `// Auto-generated SQLite seed snapshot for Vercel Serverless Lambdas\nexport const SEED_DB_BASE64 = "${b64}";\n`;
+    fs.writeFileSync(path.join(__dirname, '..', 'src', 'lib', 'db-seed.ts'), seedContent);
+    console.log(`[Vercel Build] Seed database embedded into src/lib/db-seed.ts (${dbBuffer.length} bytes)`);
+  }
 } catch (e) {
   console.warn('[Vercel Build] DB sync warning:', e.message);
 }

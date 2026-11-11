@@ -20,8 +20,11 @@ export async function POST(
       useAutonomousAI = false,
     } = body;
 
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
+    const num = parseInt(params.id, 10);
+    const task = await prisma.task.findFirst({
+      where: !isNaN(num)
+        ? { OR: [{ id: params.id }, { taskNumber: num }] }
+        : { id: params.id },
       include: { buyer: true },
     });
 

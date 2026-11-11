@@ -73,15 +73,20 @@ export default function TaskDetailsPage() {
 
   // 1. Submit Bid
   const handleSubmitBid = async () => {
-    if (!selectedProviderId) return;
+    const provId = selectedProviderId || (agents.length > 0 ? agents[0].id : null);
+    if (!provId) {
+      alert("Please select a provider agent.");
+      return;
+    }
+    const targetId = task?.id || taskId;
     setActionLoading("BID");
     setActionMessage(null);
     try {
-      const res = await fetch(`/api/tasks/${taskId}/bid`, {
+      const res = await fetch(`/api/tasks/${targetId}/bid`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          providerId: selectedProviderId,
+          providerId: provId,
           useAutonomousAI: useAutonomousBid,
         }),
       });
@@ -101,10 +106,11 @@ export default function TaskDetailsPage() {
 
   // 2. Run Negotiation Engine
   const handleNegotiate = async () => {
+    const targetId = task?.id || taskId;
     setActionLoading("NEGOTIATE");
     setActionMessage(null);
     try {
-      const res = await fetch(`/api/tasks/${taskId}/negotiate`, {
+      const res = await fetch(`/api/tasks/${targetId}/negotiate`, {
         method: "POST",
       });
       const data = await res.json();
@@ -125,10 +131,11 @@ export default function TaskDetailsPage() {
 
   // 3. Execute Task (Provider Agent)
   const handleExecute = async () => {
+    const targetId = task?.id || taskId;
     setActionLoading("EXECUTE");
     setActionMessage(null);
     try {
-      const res = await fetch(`/api/tasks/${taskId}/execute`, {
+      const res = await fetch(`/api/tasks/${targetId}/execute`, {
         method: "POST",
       });
       const data = await res.json();
@@ -147,10 +154,11 @@ export default function TaskDetailsPage() {
 
   // 4. Run Independent Verification (Veritas Oracle)
   const handleVerify = async () => {
+    const targetId = task?.id || taskId;
     setActionLoading("VERIFY");
     setActionMessage(null);
     try {
-      const res = await fetch(`/api/tasks/${taskId}/verify`, {
+      const res = await fetch(`/api/tasks/${targetId}/verify`, {
         method: "POST",
       });
       const data = await res.json();
@@ -169,6 +177,7 @@ export default function TaskDetailsPage() {
 
   // 5. Approve & Release Escrow
   const handleApprove = async () => {
+    const targetId = task?.id || taskId;
     setActionLoading("APPROVE");
     setActionMessage(null);
     try {
@@ -197,7 +206,7 @@ export default function TaskDetailsPage() {
         }
       }
 
-      const res = await fetch(`/api/tasks/${taskId}/approve`, {
+      const res = await fetch(`/api/tasks/${targetId}/approve`, {
         method: "POST",
       });
       const data = await res.json();
@@ -220,9 +229,10 @@ export default function TaskDetailsPage() {
 
   // 6. Dispute
   const handleDispute = async (resolveRefund: boolean) => {
+    const targetId = task?.id || taskId;
     setActionLoading("DISPUTE");
     try {
-      const res = await fetch(`/api/tasks/${taskId}/dispute`, {
+      const res = await fetch(`/api/tasks/${targetId}/dispute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resolveRefund }),

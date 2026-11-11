@@ -11,8 +11,11 @@ export async function POST(
     const body = await request.json();
     const { reason = "Deliverable did not meet acceptance criteria", resolveRefund = false } = body;
 
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
+    const num = parseInt(params.id, 10);
+    const task = await prisma.task.findFirst({
+      where: !isNaN(num)
+        ? { OR: [{ id: params.id }, { taskNumber: num }] }
+        : { id: params.id },
       include: { provider: true, contract: true },
     });
 
