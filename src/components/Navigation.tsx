@@ -24,7 +24,7 @@ import {
 
 export function Navigation() {
   const pathname = usePathname();
-  const { accountId, isConnected, signIn, signOut } = useNearWallet();
+  const { accountId, isConnected, signIn, signOut, activeWalletType } = useNearWallet();
   const [emergencyPaused, setEmergencyPaused] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -206,7 +206,11 @@ export function Navigation() {
             {isConnected ? (
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-lg border bg-primary/10 border-primary/30 text-primary">
-                  <Wallet className="w-3 h-3 shrink-0" />
+                  {activeWalletType === "meteor" ? (
+                    <span className="text-amber-400 font-bold text-xs" title="Connected with Meteor Wallet">☄</span>
+                  ) : (
+                    <Wallet className="w-3 h-3 shrink-0" />
+                  )}
                   <span className="font-semibold text-xs truncate max-w-[110px] sm:max-w-[150px]">
                     {accountId}
                   </span>
