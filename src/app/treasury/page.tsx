@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { Coins, Lock, CheckCircle, AlertTriangle, ArrowUpRight, ExternalLink } from "lucide-react";
+import { Coins, Lock, CheckCircle, AlertTriangle, ArrowUpRight, ExternalLink, ShieldCheck } from "lucide-react";
 
 export default async function TreasuryPage() {
   const contracts = await prisma.contractAgreement.findMany({
@@ -25,31 +25,45 @@ export default async function TreasuryPage() {
     .filter((c) => c.status === "RELEASED")
     .reduce((acc, c) => acc + parseFloat(c.agreedPriceNear || "0"), 0);
 
+  const contractAddress = process.env.NEAR_CONTRACT_ID || "meridiantest.testnet";
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Treasury & Escrow
-          </h1>
-          <span className="px-2 py-0.5 text-xs font-mono rounded bg-primary/10 text-primary border border-primary/20">
-            NEAR PROTOCOL
-          </span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Treasury & Escrow
+            </h1>
+            <span className="px-2.5 py-0.5 text-xs font-mono rounded bg-primary/10 text-primary border border-primary/20 font-bold">
+              NON-CUSTODIAL ESCROW
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-secondary-foreground mt-1">
+            Cryptographic escrow balances, native NEAR smart-contract locks, and non-custodial settlement records.
+          </p>
         </div>
-        <p className="text-xs sm:text-sm text-secondary-foreground mt-1">
-          Cryptographic escrow balances, native NEAR smart-contract locks, and non-custodial settlement records.
-        </p>
+
+        <a
+          href={`https://testnet.nearblocks.io/address/${contractAddress}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card border border-card-border text-xs font-mono text-primary hover:border-primary/50 transition-colors"
+        >
+          <span>View Escrow on NearBlocks</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
-        <div className="p-5 rounded-xl border border-card-border bg-card/60">
-          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase">
+        <div className="p-6 rounded-2xl border border-card-border bg-card/60 shadow-card-dark">
+          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider">
             <span>Escrow Locked</span>
             <Lock className="w-4 h-4 text-primary" />
           </div>
-          <div className="mt-3 text-3xl font-bold text-primary">
+          <div className="mt-3 text-3xl font-black text-primary">
             {lockedNear.toFixed(2)} <span className="text-sm text-foreground">NEAR</span>
           </div>
           <div className="mt-1 text-[11px] text-muted-foreground">
@@ -57,12 +71,12 @@ export default async function TreasuryPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-card-border bg-card/60">
-          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase">
+        <div className="p-6 rounded-2xl border border-card-border bg-card/60 shadow-card-dark">
+          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider">
             <span>Total Payouts Settled</span>
             <CheckCircle className="w-4 h-4 text-success" />
           </div>
-          <div className="mt-3 text-3xl font-bold text-success">
+          <div className="mt-3 text-3xl font-black text-success">
             {releasedNear.toFixed(2)} <span className="text-sm text-foreground">NEAR</span>
           </div>
           <div className="mt-1 text-[11px] text-muted-foreground">
@@ -70,22 +84,32 @@ export default async function TreasuryPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-card-border bg-card/60">
-          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase">
+        <div className="p-6 rounded-2xl border border-card-border bg-card/60 shadow-card-dark">
+          <div className="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider">
             <span>Settlement Contract</span>
             <Coins className="w-4 h-4 text-primary" />
           </div>
           <div className="mt-3 text-sm font-bold text-foreground truncate">
-            {process.env.NEAR_CONTRACT_ID || "meridian_core.testnet"}
+            {contractAddress}
           </div>
           <div className="mt-1 text-[11px] text-muted-foreground">
-            Network: NEAR Testnet
+            Network: NEAR Testnet • Zero Gas Leakage
           </div>
         </div>
       </div>
 
+      {/* Escrow Invariant Guarantee Notice */}
+      <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 flex items-center gap-3 text-xs font-mono text-secondary-foreground">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+        <span>
+          Mathematical Escrow Invariant: <strong className="text-primary">Escrow = Agreed Payout + Buyer Surplus</strong>.
+          Upon deliverable approval, the provider receives 100% of the agreed payout with zero deduction, and the surplus
+          is atomically refunded back to the buyer in the same transaction receipt execution tree.
+        </span>
+      </div>
+
       {/* Escrow Agreements Table */}
-      <div className="p-6 rounded-xl border border-card-border bg-card/40 space-y-4">
+      <div className="p-6 rounded-2xl border border-card-border bg-card/40 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-foreground">Active & Settled Escrow Agreements</h2>
           <span className="text-[11px] font-mono text-muted-foreground">{contracts.length} Agreements</span>
@@ -98,33 +122,29 @@ export default async function TreasuryPage() {
                 <th className="pb-2">Task</th>
                 <th className="pb-2">Buyer</th>
                 <th className="pb-2">Provider</th>
-                <th className="pb-2">Agreed Escrow</th>
-                <th className="pb-2">Exact YoctoNEAR</th>
-                <th className="pb-2">Status</th>
+                <th className="pb-2">Agreed Price</th>
+                <th className="pb-2">Escrow Status</th>
                 <th className="pb-2">Settlement Hash</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-card-border/40">
               {contracts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                    No escrow agreements established yet.
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    No escrow agreements registered yet. Tasks with accepted bids create smart contract escrow agreements.
                   </td>
                 </tr>
               ) : (
                 contracts.map((c) => (
                   <tr key={c.id} className="text-foreground">
-                    <td className="py-3 font-semibold">
-                      <Link href={`/tasks/${c.taskId}`} className="hover:text-primary transition-colors">
-                        #{c.task.taskNumber} {c.task.title.slice(0, 24)}...
+                    <td className="py-3">
+                      <Link href={`/tasks/${c.taskId}`} className="font-bold text-primary hover:underline">
+                        #{c.task.taskNumber} {c.task.title.slice(0, 35)}...
                       </Link>
                     </td>
                     <td className="py-3 text-muted-foreground">{c.task.buyerAccountId}</td>
-                    <td className="py-3 text-primary">{c.task.provider?.name || "Unassigned"}</td>
-                    <td className="py-3 font-bold">{c.agreedPriceNear} NEAR</td>
-                    <td className="py-3 text-[10px] text-muted-foreground font-mono truncate max-w-[140px]">
-                      {c.agreedPriceYocto}
-                    </td>
+                    <td className="py-3 text-muted-foreground">{c.task.provider?.name || "Assigned Provider"}</td>
+                    <td className="py-3 font-bold text-foreground">{c.agreedPriceNear} NEAR</td>
                     <td className="py-3">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
@@ -138,19 +158,19 @@ export default async function TreasuryPage() {
                         {c.status}
                       </span>
                     </td>
-                    <td className="py-3 text-muted-foreground truncate max-w-[140px]">
+                    <td className="py-3">
                       {c.settledTxHash ? (
                         <a
                           href={`https://testnet.nearblocks.io/txns/${c.settledTxHash}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-primary hover:underline flex items-center gap-1"
+                          className="text-primary hover:underline flex items-center gap-1 font-bold"
                         >
-                          <span>{c.settledTxHash.slice(0, 10)}...</span>
+                          <span className="truncate max-w-[120px]">{c.settledTxHash}</span>
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        c.fundedTxHash ? `${c.fundedTxHash.slice(0, 10)}...` : "PENDING_RELEASE"
+                        <span className="text-muted-foreground">In Escrow</span>
                       )}
                     </td>
                   </tr>

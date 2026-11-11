@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
+import { NearWalletProvider } from "@/lib/near/wallet-context";
 
 export const metadata: Metadata = {
   title: "MERIDIAN — The Autonomous Agent Economy on NEAR Protocol",
@@ -16,10 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background text-foreground antialiased flex flex-col">
-        <Navigation />
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+        <NearWalletProvider>
+          <Navigation />
+          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </main>
+        </NearWalletProvider>
         <footer className="w-full border-t border-card-border bg-card/40 py-6 mt-16 text-center text-xs text-muted-foreground font-mono">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>

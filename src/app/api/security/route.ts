@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
+import { nearClient } from "@/lib/near/client";
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
       take: 100,
     });
 
-    const emergencyPauseActive = process.env.EMERGENCY_PAUSE === "true";
+    const emergencyPauseActive = await MeridianGuard.isEmergencyPauseActive();
 
     return NextResponse.json({
       status: "SUCCESS",
@@ -60,18 +61,29 @@ export async function POST(request: Request) {
     }
 
     if (action === "TOGGLE_EMERGENCY_PAUSE") {
-      const current = process.env.EMERGENCY_PAUSE === "true";
-      process.env.EMERGENCY_PAUSE = current ? "false" : "true";
+      const current = await MeridianGuard.isEmergencyPauseActive();
+      const targetState = !current;
+      process.env.EMERGENCY_PAUSE = targetState ? "true" : "false";
+
+      let onChainUpdated = false;
+      if (process.env.NEAR_ACCOUNT_ID && process.env.NEAR_PRIVATE_KEY && process.env.NEAR_CONTRACT_ID) {
+        try {
+          const res = await nearClient.callChangeMethod("set_paused", { paused: targetState });
+          onChainUpdated = res.success;
+        } catch (e) {
+          console.warn("Could not set on-chain paused state:", e);
+        }
+      }
 
       await MeridianGuard.logAudit({
-        actionType: current ? "EMERGENCY_PAUSE_DEACTIVATED" : "EMERGENCY_PAUSE_ACTIVATED",
+        actionType: targetState ? "EMERGENCY_PAUSE_ACTIVATED" : "EMERGENCY_PAUSE_DEACTIVATED",
         severity: "CRITICAL",
-        details: { newStatus: !current },
+        details: { newStatus: targetState, onChainUpdated },
       });
 
       return NextResponse.json({
         status: "SUCCESS",
-        data: { emergencyPauseActive: !current },
+        data: { emergencyPauseActive: targetState, onChainUpdated },
       });
     }
 

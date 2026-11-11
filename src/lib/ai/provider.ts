@@ -15,7 +15,7 @@ import {
 export class GeminiProvider implements AIProvider {
   name: "GEMINI" = "GEMINI";
   private client: GoogleGenerativeAI | null = null;
-  private modelName = "gemini-1.5-flash";
+  private modelName = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
   constructor() {
     const key = process.env.GEMINI_API_KEY;
@@ -32,30 +32,53 @@ export class GeminiProvider implements AIProvider {
     if (!this.client) throw new Error("Gemini API key is not configured.");
     const startTime = Date.now();
 
-    const model = this.client.getGenerativeModel({
-      model: this.modelName,
-      systemInstruction: options.systemPrompt,
-      generationConfig: {
-        temperature: options.temperature ?? 0.2,
-        maxOutputTokens: options.maxTokens ?? 2048,
-      },
-    });
+    const candidateModels = Array.from(new Set([
+      "gemini-3.1-flash-lite",
+      this.modelName,
+      "gemini-3.5-flash-lite",
+      "gemini-3.8-flash",
+    ]));
 
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Gemini inference request timed out")), options.timeoutMs ?? 25000)
-    );
+    let lastError: any = null;
+    for (const modelToTry of candidateModels) {
+      try {
+        const modelParams: any = {
+          model: modelToTry,
+          generationConfig: {
+            temperature: options.temperature ?? 0.2,
+            maxOutputTokens: options.maxTokens ?? 2048,
+          },
+        };
+        if (options.systemPrompt && options.systemPrompt.trim() !== "") {
+          modelParams.systemInstruction = options.systemPrompt;
+        }
 
-    const result = await Promise.race([model.generateContent(options.prompt), timeoutPromise]);
-    const rawText = result.response.text();
+        const model = this.client.getGenerativeModel(modelParams);
 
-    return {
-      data: rawText,
-      rawText,
-      provider: "GEMINI",
-      isDemo: false,
-      model: this.modelName,
-      executionTimeMs: Date.now() - startTime,
-    };
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Gemini inference request timed out")), options.timeoutMs ?? 45000)
+        );
+
+        const result = await Promise.race([model.generateContent(options.prompt), timeoutPromise]);
+        const rawText = result.response.text();
+
+        return {
+          data: rawText,
+          rawText,
+          provider: "GEMINI",
+          isDemo: false,
+          model: modelToTry,
+          executionTimeMs: Date.now() - startTime,
+        };
+      } catch (err: any) {
+        lastError = err;
+        // Brief pause before trying next candidate on transient network/load errors
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+    }
+
+    throw lastError || new Error("Failed to generate content with available Gemini models");
   }
 
   async generateJson<T = any>(options: GenerateOptions): Promise<AgentInferenceResult<T>> {

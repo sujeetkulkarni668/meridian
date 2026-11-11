@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useNearWallet } from "@/lib/near/wallet-context";
 import {
   Activity,
   Layers,
@@ -14,22 +15,15 @@ import {
   Coins,
   Radio,
   FileCheck2,
+  LogOut,
 } from "lucide-react";
 
 export function Navigation() {
   const pathname = usePathname();
-  const [walletAccount, setWalletAccount] = useState<string | null>(null);
+  const { accountId, isConnected, signIn, signOut } = useNearWallet();
   const [emergencyPaused, setEmergencyPaused] = useState(false);
 
   useEffect(() => {
-    // Check saved wallet or default to meridian_buyer.testnet
-    const saved = localStorage.getItem("meridian_wallet_account");
-    if (saved) {
-      setWalletAccount(saved);
-    } else {
-      setWalletAccount("meridian_buyer.testnet");
-    }
-
     // Check system status
     fetch("/api/system/status")
       .then((r) => r.json())
@@ -40,17 +34,6 @@ export function Navigation() {
       })
       .catch(() => {});
   }, []);
-
-  const toggleWallet = () => {
-    if (walletAccount) {
-      localStorage.removeItem("meridian_wallet_account");
-      setWalletAccount(null);
-    } else {
-      const demoAccount = "developer.testnet";
-      localStorage.setItem("meridian_wallet_account", demoAccount);
-      setWalletAccount(demoAccount);
-    }
-  };
 
   const navItems = [
     { name: "Command Center", href: "/command-center", icon: Activity },
@@ -114,22 +97,39 @@ export function Navigation() {
 
           {/* Wallet & Status Widget */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-card border border-card-border text-[11px] font-mono text-muted-foreground">
-              <span className="w-2 h-2 rounded-full bg-success animate-ping inline-block" />
-              <span>NEAR Testnet</span>
-            </div>
-
-            <button
-              onClick={toggleWallet}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded-lg border transition-all ${
-                walletAccount
-                  ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
-                  : "bg-card border-card-border text-foreground hover:border-primary/50"
-              }`}
+            <a
+              href="https://testnet.nearblocks.io/address/meridiantest.testnet"
+              target="_blank"
+              rel="noreferrer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-card border border-card-border hover:border-primary/40 text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors"
             >
-              <Wallet className="w-3.5 h-3.5" />
-              <span>{walletAccount ? `${walletAccount.slice(0, 14)}...` : "Connect Wallet"}</span>
-            </button>
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse inline-block" />
+              <span>NEAR Testnet</span>
+            </a>
+
+            {isConnected ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded-lg border bg-primary/10 border-primary/30 text-primary">
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span className="font-semibold">{accountId && accountId.length > 18 ? `${accountId.slice(0, 15)}...` : accountId}</span>
+                </div>
+                <button
+                  onClick={() => signOut()}
+                  title="Disconnect NEAR Wallet"
+                  className="p-1.5 rounded-lg border border-card-border bg-card hover:bg-card-border/40 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={signIn}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-medium rounded-lg border bg-primary/10 border-primary/40 text-primary hover:bg-primary/20 hover:border-primary transition-all shadow-sm"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Connect Wallet</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

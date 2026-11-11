@@ -70,7 +70,9 @@ export async function POST(request: Request) {
     let criteria: string[] = [];
 
     // Buyer Agent Requirement Decomposition
-    if (useAiDecomposition && userBrief) {
+    if (body.acceptanceCriteria && Array.isArray(body.acceptanceCriteria) && body.acceptanceCriteria.length > 0) {
+      criteria = body.acceptanceCriteria;
+    } else if (useAiDecomposition && userBrief) {
       // Validate prompt against Meridian Guard injection detector
       const securityCheck = await MeridianGuard.validateAction({
         agentId: "meridian-procurement",

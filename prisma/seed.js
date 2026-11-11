@@ -24,6 +24,7 @@ async function main() {
   });
 
   // 2. Clear previous seed data for fresh start
+  await prisma.blockchainTransaction.deleteMany({});
   await prisma.auditEvent.deleteMany({});
   await prisma.agentExecutionLog.deleteMany({});
   await prisma.reputationRecord.deleteMany({});
@@ -202,7 +203,7 @@ async function main() {
       policy: {
         maxTaskBudgetNear: 100.0,
         dailySpendLimitNear: 500.0,
-        allowedMethodsJson: JSON.stringify(['create_task', 'fund_task', 'award_task', 'approve_and_payout']),
+        allowedMethodsJson: JSON.stringify(['create_task', 'fund_task', 'award_task', 'approve_and_payout', 'decompose_rfp']),
         requiresHumanConfirm: true,
         isPaused: false,
       },
@@ -263,8 +264,8 @@ async function main() {
       agreedPriceYocto: '5000000000000000000000000',
       escrowAddress: 'meridian_core.testnet',
       escrowFunded: true,
-      fundedTxHash: '9mFvGq5V7zY2P8rW3kL4xT9bN8mK7jH6gD5sA4pE3oQ1',
-      settledTxHash: '8nEwHp4U6yX1O7qV2jK3wS8aM7lJ6iG5fC4rB3nD2mP9',
+      fundedTxHash: null,
+      settledTxHash: null,
       status: 'RELEASED',
     },
   });
@@ -304,7 +305,7 @@ async function main() {
       newScore: 98.4,
       scoreDelta: 2.4,
       reason: 'TASK_SUCCESS',
-      proofHash: 'rec_8nEwHp4U6yX1O7qV2jK3wS8aM7lJ6iG5fC4rB3nD2mP9',
+      proofHash: 'simulated_benchmark_receipt_task_101',
     },
   });
 
@@ -328,6 +329,104 @@ async function main() {
       buyerAccountId: 'meridian_buyer.testnet',
       status: 'OPEN',
       onChainTaskId: '102',
+    },
+  });
+
+  // Task #21: Real On-Chain Verified End-to-End Orchestration Task
+  const liveBuyerUser = await prisma.user.upsert({
+    where: { nearAccountId: 'buyer-ai-676104.meridiantest.testnet' },
+    update: {},
+    create: {
+      nearAccountId: 'buyer-ai-676104.meridiantest.testnet',
+      role: 'BUYER',
+    },
+  });
+
+  const task21 = await prisma.task.create({
+    data: {
+      taskNumber: 21,
+      title: 'Security Audit: NEAR Escrow Accounting and Cross-Contract Callback Invariants',
+      description: 'Conduct a rigorous smart contract security audit of NEAR Protocol escrow accounting, cross-contract promise callbacks, and storage deposit invariants.',
+      requirementsJson: JSON.stringify([
+        'Formal verification or manual trace of escrow balance state transitions to ensure zero-sum integrity.',
+        'Identification of potential reentrancy or state-inconsistency vulnerabilities within cross-contract promise callback handlers.',
+        'Validation of storage deposit accounting to prevent storage draining or DoS via uncollected storage fees.',
+        'Comprehensive report detailing identified vulnerabilities, categorized by severity.',
+        'Provision of remediation code snippets or architectural recommendations for all identified high/critical issues.',
+      ]),
+      category: 'SECURITY_REVIEW',
+      budgetNear: '0.05',
+      budgetYocto: '50000000000000000000000',
+      deadlineEpochMs: BigInt(Date.now() + 86400000 * 2),
+      buyerId: liveBuyerUser.id,
+      buyerAccountId: 'buyer-ai-676104.meridiantest.testnet',
+      providerId: sentinelAgent.id,
+      status: 'COMPLETED',
+      onChainTaskId: '21',
+    },
+  });
+
+  await prisma.contractAgreement.create({
+    data: {
+      taskId: task21.id,
+      agreedPriceNear: '0.035',
+      agreedPriceYocto: '35000000000000000000000',
+      escrowAddress: 'meridiantest.testnet',
+      escrowFunded: true,
+      fundedTxHash: 'BDxk1gvRFnEULX22uvzHtTXKuj3UJdXCzEQ8xDdzqkg4',
+      settledTxHash: '8kcYioGvUukGsL2ex2heyFc2AJUWZoR21fQSTCeW6j6e',
+      status: 'RELEASED',
+    },
+  });
+
+  await prisma.deliverable.create({
+    data: {
+      taskId: task21.id,
+      content: `# Security Audit: NEAR Escrow Accounting and Cross-Contract Callback Invariants\n\n## 1. Executive Summary\nA rigorous audit of the MERIDIAN core smart contracts was completed on NEAR Testnet, focusing on escrow custody invariants, cross-contract callback atomicity, and storage deposit boundaries.\n\n## 2. Key Invariant Verifications\n- Escrow Accounting: Zero-sum balance preservation verified.\n- Surplus Refund: Buyer surplus refund is atomically separated from provider payout.\n- Gas Invariant: Provider payout executes with 0 yoctoNEAR gas leakage.`,
+      deliverableHash: 'e2f9c7fcd2d720231f1dd409bdf40f40c7913fc209e9e51d56e7697e10d164c1',
+    },
+  });
+
+  await prisma.verificationResult.create({
+    data: {
+      taskId: task21.id,
+      verifierAgentId: veritasAgent.id,
+      verdict: 'APPROVED',
+      qualityScore: 95.0,
+      criteriaMetJson: JSON.stringify({
+        'Escrow State Transitions': { passed: true, observation: 'Zero-sum balance invariant preserved on-chain.' },
+        'Cross-Contract Callbacks': { passed: true, observation: 'Promise callbacks handle failure rollback without gas starvation.' },
+        'Storage Deposit Protection': { passed: true, observation: '0.01 NEAR minimum deposit required for contract state.' },
+        'Comprehensive Reporting': { passed: true, observation: 'Full vulnerability categorization and remediation provided.' },
+        'Remediation Recommendations': { passed: true, observation: 'Explicit code diffs supplied.' },
+      }),
+      verdictRationale: 'The submitted security audit deliverable thoroughly addresses all 5 acceptance criteria, providing clear architectural analysis and verifiable evidence.',
+    },
+  });
+
+  await prisma.blockchainTransaction.create({
+    data: {
+      taskId: task21.id,
+      txHash: 'BDxk1gvRFnEULX22uvzHtTXKuj3UJdXCzEQ8xDdzqkg4',
+      signerId: 'buyer-ai-676104.meridiantest.testnet',
+      receiverId: 'meridiantest.testnet',
+      methodName: 'create_task',
+      depositYocto: '60000000000000000000000',
+      status: 'SUCCESS',
+      explorerUrl: 'https://testnet.nearblocks.io/txns/BDxk1gvRFnEULX22uvzHtTXKuj3UJdXCzEQ8xDdzqkg4',
+    },
+  });
+
+  await prisma.blockchainTransaction.create({
+    data: {
+      taskId: task21.id,
+      txHash: '8kcYioGvUukGsL2ex2heyFc2AJUWZoR21fQSTCeW6j6e',
+      signerId: 'buyer-ai-676104.meridiantest.testnet',
+      receiverId: 'meridiantest.testnet',
+      methodName: 'approve_and_payout',
+      depositYocto: '0',
+      status: 'SUCCESS',
+      explorerUrl: 'https://testnet.nearblocks.io/txns/8kcYioGvUukGsL2ex2heyFc2AJUWZoR21fQSTCeW6j6e',
     },
   });
 

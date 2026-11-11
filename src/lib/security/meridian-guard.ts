@@ -1,4 +1,5 @@
 import prisma from "../prisma";
+import { nearClient } from "../near/client";
 
 export interface SecurityPolicyCheckResult {
   allowed: boolean;
@@ -32,6 +33,56 @@ export class MeridianGuard {
     /eval\s*\(/i,
   ];
 
+  private static lastOnChainCheck = 0;
+  private static cachedOnChainPaused = false;
+
+  /**
+   * Checks whether the global emergency pause is active using defense-in-depth:
+   * 1) Fast-fail if process.env.EMERGENCY_PAUSE is true.
+   * 2) On-chain smart contract view (cached for 10s to eliminate latency).
+   * 3) Persisted database audit log.
+   */
+  static async isEmergencyPauseActive(): Promise<boolean> {
+    if (process.env.EMERGENCY_PAUSE === "true") {
+      return true;
+    }
+
+    const now = Date.now();
+    if (process.env.NEAR_CONTRACT_ID && now - this.lastOnChainCheck > 10000) {
+      try {
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+        const viewPromise = nearClient.viewMethod<boolean>("is_paused", {});
+        const res = await Promise.race([viewPromise, timeoutPromise]);
+        if (typeof res === "boolean") {
+          this.cachedOnChainPaused = res;
+          this.lastOnChainCheck = now;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    if (this.cachedOnChainPaused) {
+      return true;
+    }
+
+    try {
+      const latestPauseEvent = await prisma.auditEvent.findFirst({
+        where: {
+          actionType: { in: ["EMERGENCY_PAUSE_ACTIVATED", "EMERGENCY_PAUSE_DEACTIVATED"] },
+        },
+        orderBy: { timestamp: "desc" },
+      });
+      if (latestPauseEvent) {
+        return latestPauseEvent.actionType === "EMERGENCY_PAUSE_ACTIVATED";
+      }
+    } catch {
+      // Database query failed; fallback
+    }
+
+    return false;
+  }
+
   /**
    * Validates whether an action is permitted under the agent's active security policy.
    */
@@ -46,7 +97,7 @@ export class MeridianGuard {
     let requiresHumanApproval = false;
 
     // 1. Global emergency circuit breaker check
-    const emergencyPause = process.env.EMERGENCY_PAUSE === "true";
+    const emergencyPause = await this.isEmergencyPauseActive();
     if (emergencyPause) {
       await this.logAudit({
         actionType: "CIRCUIT_BREAKER_BLOCKED",
@@ -62,11 +113,18 @@ export class MeridianGuard {
       };
     }
 
-    // 2. Fetch Agent Security Policy
-    const policy = await prisma.securityPolicy.findUnique({
+    // 2. Fetch Agent Security Policy (by agent ID or slug)
+    let policy = await prisma.securityPolicy.findUnique({
       where: { agentId: params.agentId },
       include: { agent: true },
     });
+
+    if (!policy) {
+      policy = await prisma.securityPolicy.findFirst({
+        where: { agent: { slug: params.agentId } },
+        include: { agent: true },
+      });
+    }
 
     if (!policy) {
       // Safe default if no policy exists: reject and require human configuration

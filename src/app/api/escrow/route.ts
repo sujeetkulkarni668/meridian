@@ -38,10 +38,20 @@ export async function GET() {
       }
     }
 
+    const safeContracts = contracts.map((c) => ({
+      ...c,
+      task: c.task
+        ? {
+            ...c.task,
+            deadlineEpochMs: c.task.deadlineEpochMs.toString(),
+          }
+        : null,
+    }));
+
     return NextResponse.json({
       status: "SUCCESS",
       data: {
-        contracts,
+        contracts: safeContracts,
         blockchainTxs,
         metrics: {
           totalEscrowLockedNear: totalEscrowLockedNear.toFixed(2),

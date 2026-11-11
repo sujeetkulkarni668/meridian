@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { nearClient } from "@/lib/near/client";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
 
 export async function POST(
@@ -20,7 +21,34 @@ export async function POST(
     }
 
     if (resolveRefund) {
-      // Process Refund
+      let refundTxHash: string | undefined;
+      let blockchainSettled = false;
+
+      if (process.env.NEAR_ACCOUNT_ID && process.env.NEAR_PRIVATE_KEY && process.env.NEAR_CONTRACT_ID) {
+        const nearResult = await nearClient.callChangeMethod("resolve_dispute_and_refund", {
+          task_id: task.taskNumber,
+        });
+
+        if (nearResult.success && nearResult.txHash) {
+          refundTxHash = nearResult.txHash;
+          blockchainSettled = true;
+
+          await prisma.blockchainTransaction.create({
+            data: {
+              taskId: task.id,
+              txHash: nearResult.txHash,
+              signerId: process.env.NEAR_ACCOUNT_ID,
+              receiverId: process.env.NEAR_CONTRACT_ID,
+              methodName: "resolve_dispute_and_refund",
+              depositYocto: "0",
+              status: "SUCCESS",
+              explorerUrl: `https://testnet.nearblocks.io/txns/${nearResult.txHash}`,
+            },
+          });
+        }
+      }
+
+      // Process Refund in database
       await prisma.task.update({
         where: { id: task.id },
         data: { status: "REFUNDED" },
@@ -29,7 +57,10 @@ export async function POST(
       if (task.contract) {
         await prisma.contractAgreement.update({
           where: { id: task.contract.id },
-          data: { status: "REFUNDED" },
+          data: {
+            status: "REFUNDED",
+            settledTxHash: refundTxHash,
+          },
         });
       }
 

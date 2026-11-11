@@ -30,7 +30,8 @@ MERIDIAN unifies these pillars into a cohesive, production-grade architecture de
 |               v                               v                                 v                  |
 |    +------------------------------------------------------------------------------------------+    |
 |    |                                    TASK EXCHANGE PIPELINE                                |    |
-|    |  OPEN  -->  BIDDING  -->  AWARDED  -->  IN_PROGRESS  -->  DELIVERED  -->  VERIFIED       |    |
+|    |  OPEN  -->  BIDDING  -->  AWARDED  -->  FUNDED  -->  IN_PROGRESS  -->  DELIVERED         |    |
+|    |                             -->  VERIFIED  -->  COMPLETED                                |    |
 |    +------------------------------------------------------------------------------------------+    |
 |                                                                                |                   |
 |                                                                                v                   |
@@ -39,7 +40,7 @@ MERIDIAN unifies these pillars into a cohesive, production-grade architecture de
 |                                                                   | (Zero-Trust Verification) |    |
 |                                                                   +---------------------------+    |
 |                                                                                |                   |
-|                                                                                v (Verdict: PASS)   |
+|                                                                                v (Verdict/Score)   |
 |    +------------------------------------------------------------------------------------------+    |
 |    |                        NEAR SMART CONTRACT (meridian_core.wasm)                          |    |
 |    |       [Agent Registry]      [Native Escrow Lock]      [Promise Payout / Refund]          |    |
@@ -58,72 +59,51 @@ MERIDIAN unifies these pillars into a cohesive, production-grade architecture de
 
 ---
 
-## 2. Component Breakdown
+## 2. On-Chain vs. Off-Chain Separation
 
-### 2.1 Multi-Agent System
-MERIDIAN features four specialized autonomous roles:
+MERIDIAN enforces a strict separation of concerns between probabilistic artificial intelligence and deterministic consensus rules:
 
-1. **Buyer Executive Agent**:
-   - Ingests natural-language project briefs.
+### On-Chain (NEAR Testnet: `meridiantest.testnet`)
+- **Agent Registry**: Account registration, capability tags, and verification statuses.
+- **Task Lifecycle State Machine**: Enforces valid transitions (`Open` $\to$ `Bidding` $\to$ `Awarded` $\to$ `Funded` $\to$ `InProgress` $\to$ `Delivered` $\to$ `Verified` $\to$ `Completed`).
+- **Escrow Accounting**: Non-custodial deposit locking, exact yoctoNEAR balance accounting, storage staking reserves.
+- **Settlement Execution**: Native cross-contract promise calls to release provider payouts and buyer surplus refunds.
+- **Reputation Ledger**: Verifiable on-chain reputation increments and dispute penalties.
+- **Emergency Circuit Breaker**: Administrative pause toggle (`set_paused`) managed by Meridian Guard.
+
+### Off-Chain (Next.js 14 Application & Node.js Runtime)
+- **Cognitive Inference Engine**: Live Gemini 3.1 Flash Lite inference for RFP decomposition, bid proposals, technical deliverable creation, and adversarial inspection.
+- **Deterministic Negotiation Arbiter**: 4-factor scoring algorithm (Price 35%, Reputation 30%, Match 20%, Turnaround 15%).
+- **Prompt Injection Defense**: Meridian Guard gateway sanitizing unstructured text before LLM inference.
+- **Indexing & Local Database**: Prisma ORM with SQLite (`dev.db`) storing historical telemetry and audit trails.
+- **Cryptographic Deliverable Hashing**: SHA-256 calculation over deliverable artifacts before on-chain commitment.
+
+---
+
+## 3. Autonomous Multi-Agent Swarm Roles
+
+1. **Buyer Executive Agent (`meridian-procurement`)**:
+   - Ingests natural-language business requests.
    - Decomposes briefs into machine-readable JSON acceptance criteria.
-   - Estimates realistic budget bounds in NEAR and sets deadline parameters.
-   - Automatically opens an on-chain RFP.
+   - Computes realistic budget bounds in NEAR and sets deadline parameters.
+   - Initiates on-chain task creation with storage reserves.
 
-2. **Provider Agents** (e.g., *Sentinel Security Guard*, *Apex Synthesizer*, *Aegis Optimizer*):
-   - Ingests open RFPs and matches requirements against its capability matrix.
-   - Formulates competitive proposals with proposed price, turnaround time, technical approach, and milestones.
-   - Autonomously executes tasks, producing complete technical artifacts (reports, AST diffs, JSON data).
-   - Generates SHA-256 deliverable hashes for cryptographic integrity.
+2. **Provider Agents (`sentinel-security`, `apex-synthesizer`, `aegis-optimizer`)**:
+   - Discovers active RFPs matching domain capabilities.
+   - Formulates structured proposals with pricing, milestones, and technical approaches.
+   - Autonomously executes tasks, writing markdown audit reports or formal verification artifacts.
+   - Computes SHA-256 deliverable hashes for cryptographic integrity.
 
-3. **Negotiation Agent (*Equilibrium Negotiator*)**:
-   - Executes a transparent, deterministic multi-criteria scoring algorithm.
-   - Enforces buyer constraints (never awards a provider exceeding the budget or deadline).
-   - Weights:
-     - **Price**: 35%
-     - **Reputation**: 30%
-     - **Capability Match**: 20%
-     - **Delivery Speed**: 15%
-   - Normalizes scores to 0–100 with comprehensive human-readable and machine-readable rationales.
+3. **Negotiation Arbiter (`equilibrium-negotiator`)**:
+   - Deterministic 4-factor scoring engine:
+     - **Price**: 35% weight
+     - **Reputation**: 30% weight
+     - **Capability Match**: 20% weight
+     - **Delivery Speed**: 15% weight
+   - Awards winning provider without allowing LLM prompt manipulation to breach buyer budget caps.
 
-4. **Verification Agent (*Veritas Oracle*)**:
-   - Adversarial zero-trust evaluation.
+4. **Veritas Oracle (`veritas-verifier`)**:
+   - Adversarial zero-trust inspection agent.
    - Evaluates deliverable content directly against each individual acceptance criterion.
-   - Generates a pass/fail matrix, objective quality score (0–100), and verdict (`APPROVED` / `REJECTED`).
-   - Prevents unearned payouts.
-
----
-
-### 2.2 NEAR Smart Contract (`meridian_core`)
-Written in Rust targeting `wasm32-unknown-unknown` using `near-sdk` 5.5.0:
-
-- **Storage Architecture**:
-  - `agents`: `UnorderedMap<AccountId, Agent>`
-  - `tasks`: `UnorderedMap<u64, Task>`
-  - `bids_by_task`: `LookupMap<u64, Vec<Bid>>`
-- **Integer Math**: Strict 128-bit integer yoctoNEAR representation (`10^24 yoctoNEAR = 1 NEAR`). Floating-point arithmetic is prohibited.
-- **Asynchronous Settlement**:
-  - Native NEAR transfer via `Promise::new(provider).transfer(NearToken::from_yoctonear(payout_amount))`.
-  - Re-entrancy protection: State is updated to `Completed` or `Refunded` **prior** to promise dispatch.
-- **Dispute & Refund**:
-  - Timed locks permit buyers to dispute tasks and trigger refunds if milestones or deadlines are breached.
-- **On-Chain Reputation**:
-  - Providers gain +250 points (2.50%) on successful verified completions up to a 100.00% ceiling.
-  - Providers lose 500 points (5.00%) on unresolved disputes.
-
----
-
-### 2.3 Meridian Guard Defense System
-Built specifically for the **AI Security & Defense** hackathon track:
-
-1. **Deterministic Spending Caps**: Agents have daily spend quotas (e.g. 150 NEAR/day) and per-task budget limits (50 NEAR).
-2. **Capability Whitelists**: Agents can only call designated smart contract methods (`submit_bid`, `submit_deliverable`).
-3. **Prompt Injection Mitigation**: Regex detection engine scanning for system override instructions, private key extraction attempts, or credential scraping.
-4. **Idempotency Protection**: 5-minute replay detection preventing double-spending or replay attacks.
-5. **Global Circuit Breaker**: Emergency pause switch halting all agent operations instantly in case of network anomaly.
-
----
-
-### 2.4 Multi-Provider AI Inference Engine
-- **Provider Abstraction**: Common interface supporting Google Gemini (`gemini-1.5-flash`), xAI Grok (`grok-2`), and a deterministic fallback simulator.
-- **Deterministic Separation**: Business rules, pricing constraints, and scoring weights are strictly calculated in deterministic TypeScript, never left to LLM stochastic output.
-- **Honest Telemetry**: Applications clearly disclose whether inference was generated by live LLM APIs or the deterministic test simulator.
+   - Assigns quality score (0–100) and explicit verdict (`APPROVED`, `CHANGES_REQUESTED`, `REJECTED`).
+   - Prevents unearned settlement payouts.

@@ -20,6 +20,10 @@ contracts/**/target/
 .env.production
 *.pem
 *.key
+*keys*.json
+test_accounts*.json
+orchestration_accounts*.json
+scripts/*.json
 
 # Prisma & SQLite / DB files
 *.db

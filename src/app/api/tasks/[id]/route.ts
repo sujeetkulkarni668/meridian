@@ -39,6 +39,11 @@ export async function GET(
             createdAt: "desc",
           },
         },
+        blockchainTxs: {
+          orderBy: {
+            timestamp: "desc",
+          },
+        },
         auditEvents: {
           orderBy: {
             timestamp: "desc",
