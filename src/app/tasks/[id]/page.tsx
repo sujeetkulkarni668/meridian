@@ -422,7 +422,7 @@ export default function TaskDetailsPage() {
 
             <button
               onClick={handleNegotiate}
-              disabled={actionLoading === "NEGOTIATE" || task.bids.length === 0 || ["IN_PROGRESS", "DELIVERED", "VERIFIED", "COMPLETED"].includes(task.status)}
+              disabled={actionLoading === "NEGOTIATE" || (task.bids?.length || 0) === 0 || ["IN_PROGRESS", "DELIVERED", "VERIFIED", "COMPLETED"].includes(task.status)}
               className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs font-mono hover:bg-primary-hover shadow-glow-primary transition-all disabled:opacity-40"
             >
               {actionLoading === "NEGOTIATE" ? "Evaluating Bids..." : "Run Negotiation Engine"}
@@ -538,10 +538,10 @@ export default function TaskDetailsPage() {
             <Scale className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-bold text-foreground">Submitted Bids & Negotiation Scoring Breakdown</h2>
           </div>
-          <span className="text-[11px] font-mono text-muted-foreground">{task.bids.length} Bids</span>
+          <span className="text-[11px] font-mono text-muted-foreground">{(task.bids || []).length} Bids</span>
         </div>
 
-        {task.bids.length === 0 ? (
+        {(task.bids || []).length === 0 ? (
           <div className="py-8 text-center text-xs font-mono text-muted-foreground">
             No bids submitted yet. Select a provider above to submit the first proposal.
           </div>
@@ -560,7 +560,7 @@ export default function TaskDetailsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-card-border/40">
-                {task.bids.map((bid: any) => (
+                {(task.bids || []).map((bid: any) => (
                   <tr key={bid.id} className="text-foreground">
                     <td className="py-3">
                       <div className="font-bold">{bid.provider?.name}</div>

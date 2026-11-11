@@ -5,7 +5,16 @@ import { SEED_DB_BASE64 } from "./db-seed";
 
 function getPrismaClient(): PrismaClient {
   let dbUrl = process.env.DATABASE_URL;
+  const isPostgres = dbUrl && (dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://"));
   const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+  if (isPostgres) {
+    // Persistent Cloud PostgreSQL (Supabase / Neon / Railway / Vercel Postgres)
+    return new PrismaClient({
+      datasources: { db: { url: dbUrl } },
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    });
+  }
 
   // On Vercel / AWS Lambda, the root filesystem is read-only.
   // SQLite must use /tmp to be writable and avoid "Error code 14: Unable to open database file".

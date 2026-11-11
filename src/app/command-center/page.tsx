@@ -104,6 +104,7 @@ export default function CommandCenterPage() {
           category: decomposedRfp.category,
           budgetNear: String(decomposedRfp.suggestedBudgetNear || "5.0"),
           buyerAccountId: "meridian_buyer.testnet",
+          acceptanceCriteria: decomposedRfp.acceptanceCriteria,
         }),
       });
 

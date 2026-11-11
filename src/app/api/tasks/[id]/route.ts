@@ -64,6 +64,10 @@ export async function GET(
       data: {
         ...task,
         deadlineEpochMs: task.deadlineEpochMs.toString(),
+        blockchainTxs: (task.blockchainTxs || []).map((tx) => ({
+          ...tx,
+          blockHeight: tx.blockHeight ? tx.blockHeight.toString() : null,
+        })),
       },
     });
   } catch (err: any) {

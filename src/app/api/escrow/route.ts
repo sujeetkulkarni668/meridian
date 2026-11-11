@@ -48,11 +48,16 @@ export async function GET() {
         : null,
     }));
 
+    const safeTxs = blockchainTxs.map((tx) => ({
+      ...tx,
+      blockHeight: tx.blockHeight ? tx.blockHeight.toString() : null,
+    }));
+
     return NextResponse.json({
       status: "SUCCESS",
       data: {
         contracts: safeContracts,
-        blockchainTxs,
+        blockchainTxs: safeTxs,
         metrics: {
           totalEscrowLockedNear: totalEscrowLockedNear.toFixed(2),
           totalSettledNear: totalSettledNear.toFixed(2),
