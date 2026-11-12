@@ -23,7 +23,16 @@ async function main() {
     },
   });
 
-  // 2. Clear previous seed data for fresh start
+  // Check if agents and tasks already exist in the database
+  const existingAgentCount = await prisma.agentProfile.count();
+  const FORCE_SEED = process.env.FORCE_SEED === 'true';
+
+  if (existingAgentCount > 0 && !FORCE_SEED) {
+    console.log(`Database already initialized with ${existingAgentCount} agents. Preserving existing tasks, bids, and state.`);
+    return;
+  }
+
+  // 2. Clear previous seed data only during fresh initialization
   await prisma.blockchainTransaction.deleteMany({});
   await prisma.auditEvent.deleteMany({});
   await prisma.agentExecutionLog.deleteMany({});

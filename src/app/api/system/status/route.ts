@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma";
 import { nearClient } from "@/lib/near/client";
 import { getAIProvider } from "@/lib/ai/provider";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     // 1. Check Database

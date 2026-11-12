@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma";
 import { NegotiationEngine, CandidateBid, TaskConstraints } from "@/lib/negotiation/engine";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

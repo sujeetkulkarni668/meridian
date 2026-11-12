@@ -15,6 +15,11 @@ function getPrismaClient(): PrismaClient {
   if (isPostgres) {
     // Persistent Cloud PostgreSQL (Supabase / Neon / Railway / Vercel Postgres)
     return new PrismaClient({
+      datasources: {
+        db: {
+          url: dbUrl,
+        },
+      },
       log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     });
   }

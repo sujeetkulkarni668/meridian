@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
 import { nearClient } from "@/lib/near/client";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const policies = await prisma.securityPolicy.findMany({

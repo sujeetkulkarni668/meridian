@@ -5,6 +5,9 @@ import { VERIFIER_AGENT_SYSTEM, buildVerificationPrompt } from "@/lib/ai/prompts
 import { VerifierInspectionVerdict } from "@/lib/ai/types";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

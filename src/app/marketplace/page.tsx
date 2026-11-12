@@ -45,7 +45,7 @@ export default function MarketplacePage() {
       if (role !== "ALL") params.append("role", role);
       if (search) params.append("search", search);
 
-      const res = await fetch(`/api/agents?${params.toString()}`);
+      const res = await fetch(`/api/agents?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (data?.data) {
         setAgents(data.data);

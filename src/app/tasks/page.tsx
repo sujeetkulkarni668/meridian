@@ -68,8 +68,8 @@ function TaskExchangeContent() {
       if (categoryFilter !== "ALL") params.append("category", categoryFilter);
 
       const [resTasks, resAgents] = await Promise.all([
-        fetch(`/api/tasks?${params.toString()}`).then((r) => r.json()),
-        fetch("/api/agents").then((r) => r.json()),
+        fetch(`/api/tasks?${params.toString()}`, { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/agents", { cache: "no-store" }).then((r) => r.json()),
       ]);
 
       if (resTasks?.data) setTasks(resTasks.data);

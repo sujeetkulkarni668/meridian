@@ -4,6 +4,9 @@ import { BUYER_AGENT_SYSTEM, buildBuyerPrompt } from "@/lib/ai/prompts";
 import { BuyerDecomposedRfp } from "@/lib/ai/types";
 import { MeridianGuard } from "@/lib/security/meridian-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

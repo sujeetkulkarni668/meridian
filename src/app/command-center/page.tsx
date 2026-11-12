@@ -40,10 +40,10 @@ export default function CommandCenterPage() {
     setLoading(true);
     try {
       const [resAgents, resTasks, resEscrow, resStatus] = await Promise.all([
-        fetch("/api/agents").then((r) => r.json()),
-        fetch("/api/tasks").then((r) => r.json()),
-        fetch("/api/escrow").then((r) => r.json()),
-        fetch("/api/system/status").then((r) => r.json()),
+        fetch("/api/agents", { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/tasks", { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/escrow", { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/system/status", { cache: "no-store" }).then((r) => r.json()),
       ]);
 
       if (resAgents?.data) setAgents(resAgents.data);

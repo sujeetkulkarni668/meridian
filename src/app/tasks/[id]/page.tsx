@@ -47,12 +47,14 @@ export default function TaskDetailsPage() {
     setLoading(true);
     try {
       const [resTask, resAgents] = await Promise.all([
-        fetch(`/api/tasks/${taskId}`).then((r) => r.json()),
-        fetch("/api/agents?role=PROVIDER").then((r) => r.json()),
+        fetch(`/api/tasks/${taskId}`, { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/agents?role=PROVIDER", { cache: "no-store" }).then((r) => r.json()),
       ]);
 
       if (resTask?.data) {
         setTask(resTask.data);
+      } else {
+        setTask(null);
       }
       if (resAgents?.data) {
         setAgents(resAgents.data);
@@ -62,6 +64,7 @@ export default function TaskDetailsPage() {
       }
     } catch (e) {
       console.error(e);
+      setTask(null);
     } finally {
       setLoading(false);
     }
@@ -249,11 +252,38 @@ export default function TaskDetailsPage() {
     }
   };
 
-  if (loading || !task) {
+  if (loading) {
     return (
       <div className="py-24 text-center text-xs font-mono text-muted-foreground flex flex-col items-center justify-center gap-3">
         <RefreshCw className="w-5 h-5 animate-spin text-primary" />
         <span>Loading Task Workspace & Telemetry...</span>
+      </div>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="py-24 text-center text-xs font-mono text-muted-foreground flex flex-col items-center justify-center gap-3">
+        <AlertTriangle className="w-8 h-8 text-warning" />
+        <span className="text-foreground font-bold text-sm">Task Not Found</span>
+        <span className="max-w-md text-secondary-foreground text-center">
+          Task identifier &quot;{taskId}&quot; could not be located in the on-chain registry or database.
+        </span>
+        <div className="flex items-center gap-3 mt-4">
+          <button
+            onClick={fetchTask}
+            className="px-4 py-2 rounded-lg bg-card border border-card-border hover:border-primary text-foreground font-mono text-xs flex items-center gap-1.5 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry Loading</span>
+          </button>
+          <Link
+            href="/tasks"
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-mono font-semibold text-xs hover:bg-primary-hover transition-colors"
+          >
+            Return to Task Exchange
+          </Link>
+        </div>
       </div>
     );
   }
